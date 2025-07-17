@@ -48,15 +48,7 @@ export type Database = {
           user_id?: string
           website_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "employer_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       job_applications: {
         Row: {
@@ -89,13 +81,6 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_applications_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -143,15 +128,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "jobs_employer_id_fkey"
-            columns: ["employer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       student_profiles: {
         Row: {
@@ -187,41 +164,6 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "student_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
-          created_at: string | null
-          email: string
-          id: string
-          password_hash: string
-          updated_at: string | null
-          user_type: Database["public"]["Enums"]["user_type"]
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          id?: string
-          password_hash: string
-          updated_at?: string | null
-          user_type: Database["public"]["Enums"]["user_type"]
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          id?: string
-          password_hash?: string
-          updated_at?: string | null
-          user_type?: Database["public"]["Enums"]["user_type"]
-        }
         Relationships: []
       }
     }
@@ -232,7 +174,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      user_type: "student" | "employer"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -359,8 +301,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      user_type: ["student", "employer"],
-    },
+    Enums: {},
   },
 } as const

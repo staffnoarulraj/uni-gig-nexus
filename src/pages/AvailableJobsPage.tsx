@@ -4,19 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Briefcase, 
   Calendar, 
   DollarSign, 
-  MapPin, 
   Search, 
-  Filter,
   Clock,
   Building2,
-  User
 } from 'lucide-react';
 
 interface Job {
@@ -24,15 +20,14 @@ interface Job {
   title: string;
   description: string;
   requirements: string;
-  skills_required: string[];
+  tags: string[];
   budget_min: number;
   budget_max: number;
   deadline: string;
-  job_type: string;
+  status: string;
   created_at: string;
   employer_profiles: {
     company_name: string;
-    industry: string;
   } | null;
 }
 
@@ -42,7 +37,6 @@ export const AvailableJobsPage: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -59,11 +53,10 @@ export const AvailableJobsPage: React.FC = () => {
         .select(`
           *,
           employer_profiles (
-            company_name,
-            industry
+            company_name
           )
         `)
-        .eq('status', 'active')
+        .eq('status', 'open')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -130,9 +123,7 @@ export const AvailableJobsPage: React.FC = () => {
                          job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (job.employer_profiles?.company_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesFilter = filterType === 'all' || job.job_type === filterType;
-    
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
   const formatDate = (dateString: string) => {
@@ -154,15 +145,6 @@ export const AvailableJobsPage: React.FC = () => {
     return 'Not specified';
   };
 
-  const getJobTypeColor = (type: string) => {
-    switch (type) {
-      case 'full-time': return 'bg-primary/20 text-primary';
-      case 'part-time': return 'bg-secondary/20 text-secondary';
-      case 'project': return 'bg-accent/20 text-accent';
-      case 'internship': return 'bg-muted text-muted-foreground';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
 
   if (loading) {
     return (
@@ -183,8 +165,8 @@ export const AvailableJobsPage: React.FC = () => {
           </p>
         </div>
         
-        {/* Search and Filter */}
-        <div className="flex gap-4 w-full md:w-auto">
+        {/* Search */}
+        <div className="w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -194,19 +176,6 @@ export const AvailableJobsPage: React.FC = () => {
               className="pl-10"
             />
           </div>
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-40">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="full-time">Full-time</SelectItem>
-              <SelectItem value="part-time">Part-time</SelectItem>
-              <SelectItem value="project">Project</SelectItem>
-              <SelectItem value="internship">Internship</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
@@ -223,9 +192,6 @@ export const AvailableJobsPage: React.FC = () => {
                     <span>{job.employer_profiles?.company_name || 'Unknown Company'}</span>
                   </div>
                 </div>
-                <Badge className={`${getJobTypeColor(job.job_type)} capitalize`}>
-                  {job.job_type}
-                </Badge>
               </div>
             </CardHeader>
             
@@ -235,16 +201,16 @@ export const AvailableJobsPage: React.FC = () => {
               </CardDescription>
               
               {/* Skills */}
-              {job.skills_required && job.skills_required.length > 0 && (
+              {job.tags && job.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {job.skills_required.slice(0, 3).map((skill, index) => (
+                  {job.tags.slice(0, 3).map((tag, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
-                      {skill}
+                      {tag}
                     </Badge>
                   ))}
-                  {job.skills_required.length > 3 && (
+                  {job.tags.length > 3 && (
                     <Badge variant="secondary" className="text-xs">
-                      +{job.skills_required.length - 3} more
+                      +{job.tags.length - 3} more
                     </Badge>
                   )}
                 </div>
