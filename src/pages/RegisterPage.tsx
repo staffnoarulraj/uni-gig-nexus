@@ -17,6 +17,7 @@ export const RegisterPage: React.FC = () => {
   const [userType, setUserType] = useState<'student' | 'employer'>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -38,11 +39,10 @@ export const RegisterPage: React.FC = () => {
 
     try {
       const { user, error } = await signUp(email, password, userType, name);
-      
       if (error) {
         setError(error.message);
       } else if (user) {
-        navigate('/dashboard');
+        setSuccess(true);
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -50,6 +50,20 @@ export const RegisterPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <AuthLayout title="Thank You for Registering!" description="Welcome to UniGig!">
+        <div className="space-y-6 text-center py-12">
+          <h2 className="text-3xl font-bold mb-4">Thank you for using UniGig 🎉</h2>
+          <p className="text-lg mb-6">Your account has been created successfully. You can now explore jobs and opportunities on the platform.</p>
+          <Button onClick={() => navigate('/dashboard')} size="lg" variant="default">
+            Go to Dashboard
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout
@@ -153,18 +167,16 @@ export const RegisterPage: React.FC = () => {
           {loading ? 'Creating Account...' : 'Create Account'}
         </Button>
 
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="text-primary hover:underline font-medium"
-            >
-              Sign in here
-            </button>
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="text-primary hover:underline font-medium"
+          >
+            Sign in here
+          </button>
+        </p>
       </form>
     </AuthLayout>
   );

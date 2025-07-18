@@ -50,15 +50,9 @@ export const AvailableJobsPage: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select(`
-          *,
-          employer_profiles (
-            company_name
-          )
-        `)
+        .select('*')
         .eq('status', 'open')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setJobs((data as any) || []);
     } catch (error) {

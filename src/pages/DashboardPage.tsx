@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -20,16 +21,69 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // State for real employer stats
+  const [activeJobs, setActiveJobs] = useState<number | null>(null);
+  const [applicationsReceived, setApplicationsReceived] = useState<number | null>(null);
+
+  // Student stats state
+  const [applicationsSent, setApplicationsSent] = useState<number | null>(null);
+  const [jobsApplied, setJobsApplied] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchEmployerStats = async () => {
+      if (user?.userType !== 'employer') return;
+      // Fetch active jobs count
+      const { count: jobsCount } = await supabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('employer_id', user.id)
+        .eq('status', 'open');
+      setActiveJobs(jobsCount ?? 0);
+      // Fetch applications received count
+      const { count: appsCount } = await supabase
+        .from('job_applications')
+        .select('id', { count: 'exact', head: true })
+        .in('job_id',
+          (await supabase
+            .from('jobs')
+            .select('id')
+            .eq('employer_id', user.id)
+          ).data?.map(j => j.id) || []
+        );
+      setApplicationsReceived(appsCount ?? 0);
+    };
+    fetchEmployerStats();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchStudentStats = async () => {
+      if (user?.userType !== 'student') return;
+      // Applications Sent
+      const { count: appsCount } = await supabase
+        .from('job_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('student_id', user.id);
+      setApplicationsSent(appsCount ?? 0);
+      // Jobs Applied (unique job_id)
+      const { data: apps } = await supabase
+        .from('job_applications')
+        .select('job_id')
+        .eq('student_id', user.id);
+      setJobsApplied(apps ? new Set(apps.map(a => a.job_id)).size : 0);
+    };
+    fetchStudentStats();
+  }, [user]);
+
   const studentStats = [
-    { title: 'Applications Sent', value: '12', icon: FileText, color: 'text-primary' },
-    { title: 'Jobs Applied', value: '8', icon: Briefcase, color: 'text-secondary' },
+    { title: 'Applications Sent', value: applicationsSent !== null ? applicationsSent : '...', icon: FileText, color: 'text-primary' },
+    { title: 'Jobs Applied', value: jobsApplied !== null ? jobsApplied : '...', icon: Briefcase, color: 'text-secondary' },
     { title: 'Profile Views', value: '45', icon: Users, color: 'text-accent' },
     { title: 'Success Rate', value: '67%', icon: TrendingUp, color: 'text-secondary-light' },
   ];
 
   const employerStats = [
-    { title: 'Active Jobs', value: '5', icon: Briefcase, color: 'text-primary' },
-    { title: 'Applications Received', value: '28', icon: FileText, color: 'text-secondary' },
+    { title: 'Active Jobs', value: activeJobs !== null ? activeJobs : '...', icon: Briefcase, color: 'text-primary' },
+    { title: 'Applications Received', value: applicationsReceived !== null ? applicationsReceived : '...', icon: FileText, color: 'text-secondary', link: '/review-applications' },
     { title: 'Hired Students', value: '12', icon: Users, color: 'text-accent' },
     { title: 'Success Rate', value: '85%', icon: TrendingUp, color: 'text-secondary-light' },
   ];
@@ -66,19 +120,35 @@ export const DashboardPage: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="bg-gradient-card border-0 shadow-medium hover:shadow-large transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
+          user?.userType === 'employer' && stat.title === 'Applications Received' ? (
+            <Card key={index} className="bg-gradient-card border-0 shadow-medium hover:shadow-large transition-all duration-300 cursor-pointer" onClick={() => navigate(stat.link)} tabIndex={0} role="button" aria-label="View Applications Received">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </div>
+                  <div className={`p-3 rounded-lg bg-gradient-primary`}>
+                    <stat.icon className="h-6 w-6 text-white" />
+                  </div>
                 </div>
-                <div className={`p-3 rounded-lg bg-gradient-primary`}>
-                  <stat.icon className="h-6 w-6 text-white" />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card key={index} className="bg-gradient-card border-0 shadow-medium hover:shadow-large transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </div>
+                  <div className={`p-3 rounded-lg bg-gradient-primary`}>
+                    <stat.icon className="h-6 w-6 text-white" />
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )
         ))}
       </div>
 

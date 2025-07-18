@@ -36,17 +36,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // First check if user has a student profile
+        // Try student profile
         const { data: studentProfile } = await supabase
           .from('student_profiles')
           .select('full_name')
           .eq('user_id', user.id)
           .single();
-        
         if (studentProfile) {
           setUser({
             id: user.id,
@@ -55,13 +53,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             name: studentProfile.full_name
           });
         } else {
-          // Check for employer profile
+          // Try employer profile
           const { data: employerProfile } = await supabase
             .from('employer_profiles')
             .select('company_name')
             .eq('user_id', user.id)
             .single();
-          
           if (employerProfile) {
             setUser({
               id: user.id,
@@ -74,10 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       setLoading(false);
     };
-
     getUser();
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
@@ -87,118 +81,90 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, userType: 'student' | 'employer', name: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
+      // 1. Create the user
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error || !data.user) {
         return { user: null, error };
       }
-
-      if (data.user) {
-        // First check if user has a student profile
-        const { data: studentProfile } = await supabase
+      // 2. Insert the profile
+      if (userType === 'student') {
+        const { error: profileError } = await supabase
           .from('student_profiles')
-          .select('full_name')
-          .eq('user_id', data.user.id)
-          .single();
-        
-        if (studentProfile) {
-          const authUser: AuthUser = {
-            id: data.user.id,
-            email: data.user.email || '',
-            userType: 'student',
-            name: studentProfile.full_name
-          };
-          setUser(authUser);
-          return { user: authUser, error: null };
+          .insert([{ user_id: data.user.id, full_name: name }]);
+        if (profileError) {
+          return { user: null, error: profileError as any };
         }
-        
-        // Check for employer profile
-        const { data: employerProfile } = await supabase
+      } else {
+        const { error: profileError } = await supabase
           .from('employer_profiles')
-          .select('company_name')
-          .eq('user_id', data.user.id)
-          .single();
-        
-        if (employerProfile) {
-          const authUser: AuthUser = {
-            id: data.user.id,
-            email: data.user.email || '',
-            userType: 'employer',
-            name: employerProfile.company_name
-          };
-          setUser(authUser);
-          return { user: authUser, error: null };
+          .insert([{ user_id: data.user.id, company_name: name }]);
+        if (profileError) {
+          return { user: null, error: profileError as any };
         }
       }
-
-      return { user: null, error: new Error('User profile not found') as AuthError };
+      // 3. Sign in the user
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError || !signInData.user) {
+        return { user: null, error: signInError };
+      }
+      // 4. Set user context
+      const authUser: AuthUser = {
+        id: signInData.user.id,
+        email: signInData.user.email || '',
+        userType,
+        name
+      };
+      setUser(authUser);
+      return { user: authUser, error: null };
     } catch (error) {
       return { user: null, error: error as AuthError };
     }
   };
 
-  const signUp = async (email: string, password: string, userType: 'student' | 'employer', name: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) {
         return { user: null, error };
       }
-
-      if (data.user) {
-        // Create profile record
-        if (userType === 'student') {
-          const { error: profileError } = await supabase
-            .from('student_profiles')
-            .insert([
-              {
-                user_id: data.user.id,
-                full_name: name,
-              }
-            ]);
-          
-          if (profileError) {
-            return { user: null, error: profileError as any };
-          }
-        } else {
-          const { error: profileError } = await supabase
-            .from('employer_profiles')
-            .insert([
-              {
-                user_id: data.user.id,
-                company_name: name,
-              }
-            ]);
-          
-          if (profileError) {
-            return { user: null, error: profileError as any };
-          }
-        }
-
+      // Try student profile
+      const { data: studentProfile } = await supabase
+        .from('student_profiles')
+        .select('full_name')
+        .eq('user_id', data.user.id)
+        .single();
+      if (studentProfile) {
         const authUser: AuthUser = {
           id: data.user.id,
-          email: email,
-          userType: userType,
-          name
+          email: data.user.email || '',
+          userType: 'student',
+          name: studentProfile.full_name
         };
-
         setUser(authUser);
         return { user: authUser, error: null };
       }
-
-      return { user: null, error: new Error('Signup failed') as AuthError };
+      // Try employer profile
+      const { data: employerProfile } = await supabase
+        .from('employer_profiles')
+        .select('company_name')
+        .eq('user_id', data.user.id)
+        .single();
+      if (employerProfile) {
+        const authUser: AuthUser = {
+          id: data.user.id,
+          email: data.user.email || '',
+          userType: 'employer',
+          name: employerProfile.company_name
+        };
+        setUser(authUser);
+        return { user: authUser, error: null };
+      }
+      return { user: null, error: new Error('User profile not found') as AuthError };
     } catch (error) {
       return { user: null, error: error as AuthError };
     }
