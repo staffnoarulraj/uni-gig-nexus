@@ -20,7 +20,7 @@ interface Job {
   title: string;
   description: string;
   requirements: string;
-  tags: string[];
+  skills_required: string[];
   budget_min: number;
   budget_max: number;
   deadline: string;
@@ -50,8 +50,11 @@ export const AvailableJobsPage: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select('*')
-        .eq('status', 'open')
+        .select(`
+          *,
+          employer_profiles(company_name)
+        `)
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setJobs((data as any) || []);
@@ -84,18 +87,75 @@ export const AvailableJobsPage: React.FC = () => {
   };
 
   const applyToJob = async (jobId: string) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to apply for jobs.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      const { error } = await supabase
+      console.log('Applying to job:', { jobId, studentId: user.id, userType: user.userType });
+      
+      // Check if user has a student profile
+      const { data: studentProfile, error: profileError } = await supabase
+        .from('student_profiles')
+        .select('id, full_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError || !studentProfile) {
+        console.error('Student profile error:', profileError);
+        toast({
+          title: "Profile Required",
+          description: "Please complete your student profile before applying for jobs.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Student profile found:', studentProfile);
+
+      // Check if already applied
+      const { data: existingApplication } = await supabase
+        .from('job_applications')
+        .select('id')
+        .eq('job_id', jobId)
+        .eq('student_id', user.id)
+        .single();
+
+      if (existingApplication) {
+        toast({
+          title: "Already Applied",
+          description: "You have already applied for this job.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Submit application
+      const { data, error } = await supabase
         .from('job_applications')
         .insert([{
           job_id: jobId,
           student_id: user.id,
           status: 'pending'
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Application submission error:', error);
+        toast({
+          title: "Error",
+          description: `Failed to submit application: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Application submitted successfully:', data);
 
       setAppliedJobs(prev => new Set([...prev, jobId]));
       toast({
@@ -103,10 +163,10 @@ export const AvailableJobsPage: React.FC = () => {
         description: "Your application has been submitted successfully.",
       });
     } catch (error) {
-      console.error('Error applying to job:', error);
+      console.error('Unexpected error applying to job:', error);
       toast({
         title: "Error",
-        description: "Failed to submit application. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
@@ -195,16 +255,16 @@ export const AvailableJobsPage: React.FC = () => {
               </CardDescription>
               
               {/* Skills */}
-              {job.tags && job.tags.length > 0 && (
+              {job.skills_required && job.skills_required.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {job.tags.slice(0, 3).map((tag, index) => (
+                  {job.skills_required.slice(0, 3).map((skill, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
-                      {tag}
+                      {skill}
                     </Badge>
                   ))}
-                  {job.tags.length > 3 && (
+                  {job.skills_required.length > 3 && (
                     <Badge variant="secondary" className="text-xs">
-                      +{job.tags.length - 3} more
+                      +{job.skills_required.length - 3} more
                     </Badge>
                   )}
                 </div>

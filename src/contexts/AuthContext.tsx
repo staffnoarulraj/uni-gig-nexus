@@ -35,68 +35,95 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getUserProfile = async (userId: string): Promise<AuthUser | null> => {
+    // Try student profile first
+    const { data: studentProfile } = await supabase
+      .from('student_profiles')
+      .select('full_name')
+      .eq('user_id', userId)
+      .single();
+
+    if (studentProfile) {
+      const { data: authUser } = await supabase.auth.getUser();
+      return {
+        id: userId,
+        email: authUser.user?.email || '',
+        userType: 'student',
+        name: studentProfile.full_name
+      };
+    }
+
+    // Try employer profile
+    const { data: employerProfile } = await supabase
+      .from('employer_profiles')
+      .select('company_name')
+      .eq('user_id', userId)
+      .single();
+
+    if (employerProfile) {
+      const { data: authUser } = await supabase.auth.getUser();
+      return {
+        id: userId,
+        email: authUser.user?.email || '',
+        userType: 'employer',
+        name: employerProfile.company_name
+      };
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Try student profile
-        const { data: studentProfile } = await supabase
-          .from('student_profiles')
-          .select('full_name')
-          .eq('user_id', user.id)
-          .single();
-        if (studentProfile) {
-          setUser({
-            id: user.id,
-            email: user.email || '',
-            userType: 'student',
-            name: studentProfile.full_name
-          });
-        } else {
-          // Try employer profile
-          const { data: employerProfile } = await supabase
-            .from('employer_profiles')
-            .select('company_name')
-            .eq('user_id', user.id)
-            .single();
-          if (employerProfile) {
-            setUser({
-              id: user.id,
-              email: user.email || '',
-              userType: 'employer',
-              name: employerProfile.company_name
-            });
-          }
-        }
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const userProfile = await getUserProfile(authUser.id);
+        setUser(userProfile);
       }
       setLoading(false);
     };
+
     getUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
-        } else if (event === 'SIGNED_IN' && session) {
-          getUser();
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          const userProfile = await getUserProfile(session.user.id);
+          setUser(userProfile);
         }
       }
     );
+
     return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, userType: 'student' | 'employer', name: string) => {
     try {
-      // 1. Create the user
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      // 1. Create the user with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            user_type: userType,
+            name: name
+          }
+        }
+      });
+
       if (error || !data.user) {
         return { user: null, error };
       }
-      // 2. Insert the profile
+
+      // 2. Insert the profile after successful auth signup
       if (userType === 'student') {
         const { error: profileError } = await supabase
           .from('student_profiles')
           .insert([{ user_id: data.user.id, full_name: name }]);
         if (profileError) {
+          console.error('Error creating student profile:', profileError);
           return { user: null, error: profileError as any };
         }
       } else {
@@ -104,24 +131,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .from('employer_profiles')
           .insert([{ user_id: data.user.id, company_name: name }]);
         if (profileError) {
+          console.error('Error creating employer profile:', profileError);
           return { user: null, error: profileError as any };
         }
       }
-      // 3. Sign in the user
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError || !signInData.user) {
-        return { user: null, error: signInError };
-      }
-      // 4. Set user context
+
+      // 3. Create AuthUser object
       const authUser: AuthUser = {
-        id: signInData.user.id,
-        email: signInData.user.email || '',
+        id: data.user.id,
+        email: data.user.email || '',
         userType,
         name
       };
+
       setUser(authUser);
       return { user: authUser, error: null };
     } catch (error) {
+      console.error('Signup error:', error);
       return { user: null, error: error as AuthError };
     }
   };
@@ -132,40 +158,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error || !data.user) {
         return { user: null, error };
       }
-      // Try student profile
-      const { data: studentProfile } = await supabase
-        .from('student_profiles')
-        .select('full_name')
-        .eq('user_id', data.user.id)
-        .single();
-      if (studentProfile) {
-        const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email || '',
-          userType: 'student',
-          name: studentProfile.full_name
-        };
-        setUser(authUser);
-        return { user: authUser, error: null };
+
+      const userProfile = await getUserProfile(data.user.id);
+      if (!userProfile) {
+        return { user: null, error: new Error('User profile not found') as AuthError };
       }
-      // Try employer profile
-      const { data: employerProfile } = await supabase
-        .from('employer_profiles')
-        .select('company_name')
-        .eq('user_id', data.user.id)
-        .single();
-      if (employerProfile) {
-        const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email || '',
-          userType: 'employer',
-          name: employerProfile.company_name
-        };
-        setUser(authUser);
-        return { user: authUser, error: null };
-      }
-      return { user: null, error: new Error('User profile not found') as AuthError };
+
+      setUser(userProfile);
+      return { user: userProfile, error: null };
     } catch (error) {
+      console.error('Sign in error:', error);
       return { user: null, error: error as AuthError };
     }
   };
