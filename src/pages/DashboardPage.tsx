@@ -93,7 +93,7 @@ export const DashboardPage: React.FC = () => {
   const quickActions = user?.userType === 'student' ? [
     { title: 'Browse Jobs', description: 'Find your next opportunity', icon: Search, action: () => navigate('/available-jobs'), variant: 'default' as const },
     { title: 'View Applications', description: 'Check your job applications', icon: FileText, action: () => navigate('/my-jobs'), variant: 'secondary' as const },
-    { title: 'Update Profile', description: 'Keep your profile current', icon: Users, action: () => navigate('/profile'), variant: 'outline' as const },
+    { title: 'Update Profile', description: 'Keep your profile current', icon: Users, action: () => navigate('/student-profile'), variant: 'outline' as const },
   ] : [
     { title: 'Post New Job', description: 'Create a new job posting', icon: Plus, action: () => navigate('/post-job'), variant: 'default' as const },
     { title: 'Manage Jobs', description: 'Edit your job postings', icon: Briefcase, action: () => navigate('/manage-jobs'), variant: 'secondary' as const },

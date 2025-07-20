@@ -21,7 +21,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, descrip
             </div>
             <h1 className="text-4xl font-bold">UniGig</h1>
           </div>
-          
+
           <div className="space-y-4">
             <h2 className="text-3xl lg:text-4xl font-bold leading-tight">
               Connect Students with

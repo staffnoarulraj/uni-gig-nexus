@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
@@ -56,7 +54,7 @@ export type Database = {
           cover_letter: string | null
           id: string
           job_id: string
-          status: string | null
+          status: 'pending' | 'accepted' | 'rejected'
           student_id: string
         }
         Insert: {
@@ -64,7 +62,7 @@ export type Database = {
           cover_letter?: string | null
           id?: string
           job_id: string
-          status?: string | null
+          status?: 'pending' | 'accepted' | 'rejected'
           student_id: string
         }
         Update: {
@@ -72,7 +70,7 @@ export type Database = {
           cover_letter?: string | null
           id?: string
           job_id?: string
-          status?: string | null
+          status?: 'pending' | 'accepted' | 'rejected'
           student_id?: string
         }
         Relationships: [
@@ -82,7 +80,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jobs"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       jobs: {
@@ -95,8 +93,8 @@ export type Database = {
           employer_id: string
           id: string
           requirements: string | null
-          status: string | null
-          tags: string[] | null
+          job_type: 'part-time' | 'full-time' | 'project' | 'internship'
+          status: 'open' | 'closed' | 'filled'
           title: string
           updated_at: string | null
         }
@@ -109,8 +107,8 @@ export type Database = {
           employer_id: string
           id?: string
           requirements?: string | null
-          status?: string | null
-          tags?: string[] | null
+          job_type?: 'part-time' | 'full-time' | 'project' | 'internship'
+          status?: 'open' | 'closed' | 'filled'
           title: string
           updated_at?: string | null
         }
@@ -123,8 +121,8 @@ export type Database = {
           employer_id?: string
           id?: string
           requirements?: string | null
-          status?: string | null
-          tags?: string[] | null
+          job_type?: 'part-time' | 'full-time' | 'project' | 'internship'
+          status?: 'open' | 'closed' | 'filled'
           title?: string
           updated_at?: string | null
         }
@@ -141,6 +139,9 @@ export type Database = {
           skills: string[] | null
           updated_at: string | null
           user_id: string
+          university: string | null
+          major: string | null
+          year_of_study: string | null
         }
         Insert: {
           bio?: string | null
@@ -152,6 +153,9 @@ export type Database = {
           skills?: string[] | null
           updated_at?: string | null
           user_id: string
+          university?: string | null
+          major?: string | null
+          year_of_study?: string | null
         }
         Update: {
           bio?: string | null
@@ -163,15 +167,51 @@ export type Database = {
           skills?: string[] | null
           updated_at?: string | null
           user_id?: string
+          university?: string | null
+          major?: string | null
+          year_of_study?: string | null
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      jobs_with_employers: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          requirements: string | null
+          job_type: 'part-time' | 'full-time' | 'project' | 'internship'
+          budget_min: number | null
+          budget_max: number | null
+          deadline: string | null
+          status: 'open' | 'closed' | 'filled'
+          created_at: string | null
+          updated_at: string | null
+          employer_id: string
+          company_name: string | null
+        }
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_student_applications: {
+        Args: {
+          p_student_id: string
+        }
+        Returns: {
+          id: string
+          job_id: string
+          student_id: string
+          status: string
+          applied_at: string
+          job_title: string
+          job_description: string
+          job_type: string
+          job_budget_min: number | null
+          job_budget_max: number | null
+          company_name: string | null
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

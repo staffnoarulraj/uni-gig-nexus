@@ -36,9 +36,9 @@ const App = () => (
             <Route path="/post-job" element={<ProtectedRoute><PostJobPage /></ProtectedRoute>} />
             <Route path="/manage-jobs" element={<ProtectedRoute><ManageJobsPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><EmployerProfilePage /></ProtectedRoute>} />
+            <Route path="/student-profile" element={<ProtectedRoute><StudentProfilePage /></ProtectedRoute>} />
             <Route path="/review-applications" element={<ProtectedRoute><ReviewApplicationsPage /></ProtectedRoute>} />
             <Route path="/my-jobs" element={<ProtectedRoute><StudentJobsPage /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><StudentProfilePage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

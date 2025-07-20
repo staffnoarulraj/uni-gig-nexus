@@ -22,10 +22,11 @@ const EmployerProfilePage: React.FC = () => {
       const { data, error } = await supabase
         .from('employer_profiles')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
       if (error) setError(error.message);
-      setProfile(data);
+      else if (!data || data.length === 0) setProfile(null);
+      else if (data.length > 1) setError('Multiple profiles found for this user. Please contact support.');
+      else setProfile(data[0]);
       setLoading(false);
     };
     fetchProfile();

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, UserCheck, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -81,7 +81,7 @@ export const RegisterPage: React.FC = () => {
         <div className="space-y-2">
           <Label htmlFor="userType">I am a</Label>
           <Select value={userType} onValueChange={(value: 'student' | 'employer') => setUserType(value)}>
-            <SelectTrigger>
+            <SelectTrigger id="userType">
               <SelectValue placeholder="Select your role" />
             </SelectTrigger>
             <SelectContent>
@@ -95,88 +95,54 @@ export const RegisterPage: React.FC = () => {
           <Label htmlFor="name">
             {userType === 'student' ? 'Full Name' : 'Company Name'}
           </Label>
-          <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={userType === 'student' ? 'Enter your full name' : 'Enter your company name'}
-              className="pl-10"
-              required
-            />
-          </div>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="pl-10"
-              required
-            />
-          </div>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="pl-10"
-              required
-            />
-          </div>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <div className="relative">
-            <UserCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
-              className="pl-10"
-              required
-            />
-          </div>
+          <Input
+            id="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
         </div>
 
         <Button 
           type="submit" 
-          variant="default" 
-          size="lg" 
-          className="w-full"
+          className="w-full" 
           disabled={loading}
         >
           {loading ? 'Creating Account...' : 'Create Account'}
         </Button>
-
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="text-primary hover:underline font-medium"
-          >
-            Sign in here
-          </button>
-        </p>
       </form>
     </AuthLayout>
   );

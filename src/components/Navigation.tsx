@@ -22,7 +22,7 @@ export const Navigation: React.FC<NavigationProps> = ({ userType }) => {
     { path: "/dashboard", label: "Dashboard", icon: Search },
     { path: "/available-jobs", label: "Available Jobs", icon: Briefcase },
     { path: "/my-jobs", label: "My Jobs", icon: FileText },
-    { path: "/profile", label: "My Profile", icon: User },
+    { path: "/student-profile", label: "My Profile", icon: User },
   ];
 
   const employerLinks = [

@@ -51,45 +51,44 @@ export const LoginPage: React.FC = () => {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="pl-10"
-              required
-            />
-          </div>
+          <Label htmlFor="email">Email Address</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="pl-10"
-              required
-            />
-          </div>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
         </div>
 
         <Button 
           type="submit" 
-          variant="default" 
-          size="lg" 
-          className="w-full"
+          className="w-full" 
           disabled={loading}
         >
-          {loading ? 'Signing in...' : 'Sign In'}
+          {loading ? (
+            <>
+              <span className="mr-2">Signing In</span>
+              <span className="animate-spin">⋯</span>
+            </>
+          ) : (
+            'Sign In'
+          )}
         </Button>
 
         <div className="text-center">

@@ -1,3 +1,6 @@
--- TEMPORARY: Allow all inserts into student_profiles for debugging
-CREATE POLICY "Allow all inserts" ON public.student_profiles
-  FOR INSERT WITH CHECK (true); 
+-- Allow authenticated users to upload to resumes bucket
+CREATE POLICY "Authenticated can upload to resumes"
+  ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'resumes');

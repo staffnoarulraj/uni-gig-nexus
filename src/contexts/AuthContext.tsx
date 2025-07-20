@@ -71,7 +71,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       setLoading(false);
     };
+
     getUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
@@ -81,6 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     );
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -91,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error || !data.user) {
         return { user: null, error };
       }
+
       // 2. Insert the profile
       if (userType === 'student') {
         const { error: profileError } = await supabase
@@ -107,11 +111,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return { user: null, error: profileError as any };
         }
       }
+
       // 3. Sign in the user
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError || !signInData.user) {
         return { user: null, error: signInError };
       }
+
       // 4. Set user context
       const authUser: AuthUser = {
         id: signInData.user.id,
@@ -132,6 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error || !data.user) {
         return { user: null, error };
       }
+
       // Try student profile
       const { data: studentProfile } = await supabase
         .from('student_profiles')
@@ -148,6 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(authUser);
         return { user: authUser, error: null };
       }
+
       // Try employer profile
       const { data: employerProfile } = await supabase
         .from('employer_profiles')
@@ -164,6 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(authUser);
         return { user: authUser, error: null };
       }
+
       return { user: null, error: new Error('User profile not found') as AuthError };
     } catch (error) {
       return { user: null, error: error as AuthError };
