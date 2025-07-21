@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Calendar, Clock } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
 
 interface JobApplication {
   id: string;
@@ -19,6 +20,26 @@ interface JobApplication {
   company_name: string | null;
 }
 
+type Tables = Database['public']['Tables'];
+
+type JobApplicationWithJobs = {
+  id: Tables['job_applications']['Row']['id'];
+  job_id: Tables['job_applications']['Row']['job_id'];
+  student_id: Tables['job_applications']['Row']['student_id'];
+  status: Tables['job_applications']['Row']['status'];
+  applied_at: Tables['job_applications']['Row']['applied_at'];
+  cover_letter: Tables['job_applications']['Row']['cover_letter'];
+  jobs: {
+    id: Tables['jobs']['Row']['id'];
+    title: Tables['jobs']['Row']['title'];
+    description: Tables['jobs']['Row']['description'];
+    job_type: Tables['jobs']['Row']['job_type'];
+    budget_min: Tables['jobs']['Row']['budget_min'];
+    budget_max: Tables['jobs']['Row']['budget_max'];
+    employer_id: Tables['jobs']['Row']['employer_id'];
+  };
+};
+
 const StudentJobsPage: React.FC = () => {
   const { user } = useAuth();
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -32,15 +53,67 @@ const StudentJobsPage: React.FC = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .rpc('get_student_applications', {
-            p_student_id: user.id
-          });
+        // First get all applications
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from('job_applications')
+          .select('*')
+          .eq('student_id', user.id)
+          .order('applied_at', { ascending: false });
 
-        if (error) throw error;
+        if (applicationsError) throw applicationsError;
 
-        console.log('Fetched applications:', data);
-        setApplications(data || []);
+        // Get job IDs from applications
+        const jobIds = applicationsData?.map(app => app.job_id) || [];
+
+        // Get jobs with their details
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('jobs')
+          .select('*')
+          .in('id', jobIds);
+
+        if (jobsError) throw jobsError;
+
+        // Create a map of jobs by ID
+        const jobsMap = new Map(
+          jobsData?.map(job => [job.id, job]) || []
+        );
+
+        // Get employer IDs from jobs
+        const employerIds = [...new Set(jobsData?.map(job => job.employer_id).filter(Boolean) || [])];
+
+        // Get employer profiles
+        const { data: employerData, error: employerError } = await supabase
+          .from('employer_profiles')
+          .select('user_id, company_name')
+          .in('user_id', employerIds);
+
+        if (employerError) throw employerError;
+
+        // Create a map of employer_id to company_name
+        const employerMap = new Map(
+          employerData?.map(emp => [emp.user_id, emp.company_name]) || []
+        );
+
+        // Transform the data to match our interface
+        const transformedData = (applicationsData || []).map(app => {
+          const job = jobsMap.get(app.job_id);
+          return {
+            id: app.id,
+            job_id: app.job_id,
+            student_id: app.student_id,
+            status: app.status,
+            applied_at: app.applied_at || '',
+            job_title: job?.title || 'Unknown Job',
+            job_description: job?.description || '',
+            job_type: job?.job_type || 'Unknown Type', // Fixed column name
+            job_budget_min: job?.budget_min || null,
+            job_budget_max: job?.budget_max || null,
+            company_name: job?.employer_id ? employerMap.get(job.employer_id) || 'Unknown Company' : 'Unknown Company'
+          };
+        });
+
+        console.log('Fetched applications:', transformedData);
+        setApplications(transformedData);
       } catch (error: any) {
         console.error('Error fetching applications:', error);
         setError(error.message);

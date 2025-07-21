@@ -175,43 +175,8 @@ export type Database = {
       }
     }
     Views: {
-      jobs_with_employers: {
-        Row: {
-          id: string
-          title: string
-          description: string
-          requirements: string | null
-          job_type: 'part-time' | 'full-time' | 'project' | 'internship'
-          budget_min: number | null
-          budget_max: number | null
-          deadline: string | null
-          status: 'open' | 'closed' | 'filled'
-          created_at: string | null
-          updated_at: string | null
-          employer_id: string
-          company_name: string | null
-        }
-      }
     }
     Functions: {
-      get_student_applications: {
-        Args: {
-          p_student_id: string
-        }
-        Returns: {
-          id: string
-          job_id: string
-          student_id: string
-          status: string
-          applied_at: string
-          job_title: string
-          job_description: string
-          job_type: string
-          job_budget_min: number | null
-          job_budget_max: number | null
-          company_name: string | null
-        }[]
-      }
     }
     Enums: {
       [_ in never]: never
