@@ -9,15 +9,15 @@ interface Application {
   job_id: string;
   student_id: string;
   cover_letter: string | null;
-  status: string;
+  status: 'pending' | 'accepted' | 'rejected';
   applied_at: string;
   job: { title: string } | null;
-  student_name?: string;
-  student_major?: string;
-  student_university?: string;
-  student_year?: number;
-  student_bio?: string;
-  student_phone?: string;
+  student_name: string;
+  student_major: string | null;
+  student_university: string | null;
+  student_year: string | null;
+  student_bio: string | null;
+  student_phone: string | null;
 }
 
 const ReviewApplicationsPage: React.FC = () => {
@@ -95,14 +95,17 @@ const ReviewApplicationsPage: React.FC = () => {
       
       const enrichedApplications = applications.map(app => {
         const profile = profileMap.get(app.student_id);
+        if (!profile) {
+          console.warn(`No profile found for student ${app.student_id}`);
+        }
         return {
           ...app,
-          student_name: profile?.full_name || 'Unknown Student',
-          student_major: profile?.major || '',
-          student_university: profile?.university || '',
-          student_year: profile?.year_of_study || '',
-          student_bio: profile?.bio || '',
-          student_phone: profile?.phone || ''
+          student_name: profile?.full_name || `Student ${app.student_id.slice(0, 8)}...`,
+          student_major: profile?.major || null,
+          student_university: profile?.university || null,
+          student_year: profile?.year_of_study || null,
+          student_bio: profile?.bio || null,
+          student_phone: profile?.phone || null
         };
       });
       
@@ -120,7 +123,7 @@ const ReviewApplicationsPage: React.FC = () => {
     // eslint-disable-next-line
   }, [user]);
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: 'accepted' | 'rejected') => {
     setUpdating(id);
     const { error } = await supabase
       .from('job_applications')
